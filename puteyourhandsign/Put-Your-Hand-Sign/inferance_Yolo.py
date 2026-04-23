@@ -18,6 +18,7 @@ parser.add_argument('--player', type=str, default='player1', choices=['player1',
 parser.add_argument('--camera', type=int, default=1, help='Camera index (default: 1)')
 parser.add_argument('--server', type=str, default='http://localhost:3000', help='Server URL')
 parser.add_argument('--show-time', action='store_true', help='Display inference time on frame')
+parser.add_argument('--no-settings', action='store_true', help='Skip camera settings UI')
 args = parser.parse_args()
 
 # Configuration
@@ -36,11 +37,18 @@ session.headers.update({'ngrok-skip-browser-warning': 'true'})
 print(f"Loading YOLO model from: {MODEL_PATH}")
 model = YOLO(MODEL_PATH)
 
+# Initialize camera with DSHOW for Windows settings support
 cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
+
+# Show camera settings UI (the "pop up" with sliders) unless --no-settings is used
+if not args.no_settings:
+    print("Opening camera settings UI...")
+    cap.set(cv2.CAP_PROP_SETTINGS, 1)
+
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-print("🚀 AI Shadow Predictor Started (MAX SPEED MODE)!")
+print("🚀 AI Shadow Predictor Started!")
 print(f"📡 Server: {SERVER_URL}")
 print(f"👤 Player: {PLAYER_ID}")
 print("⌨️ Press 'q' to close program")
@@ -102,7 +110,7 @@ while True:
     
     cv2.putText(input_frame, info_text, (20, 40), 
                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-    cv2.imshow('Shadow AI (Turbo Mode)', input_frame)
+    cv2.imshow(f'Shadow AI - {PLAYER_ID}', input_frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

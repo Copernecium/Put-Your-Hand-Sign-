@@ -31,13 +31,14 @@ let gameState = {
     inferenceTime: 0
   },
   gameActive: false,
+  gameMode: 'normal', // 'normal' or 'rps'
   countdown: 0,
   currentTask: null,
-  timer: 30, // Default game duration
+  timer: 30, 
   timerRunning: false,
   taskImage: null,
   winner: null,
-  roundWinner: null, // Who won the current task
+  roundWinner: null, 
   roundComplete: false,
   msgRates: {
     player1: 0,
@@ -67,14 +68,12 @@ const tasks = [
 let defaultTimerValue = 30;
 let gameResetTimeout = null;
 
-// Initialize game
 function initializeGame() {
   if (gameResetTimeout) {
     clearTimeout(gameResetTimeout);
     gameResetTimeout = null;
   }
   
-  // Force reset all states
   gameState.gameActive = false;
   gameState.countdown = 0;
   gameState.timer = defaultTimerValue;
@@ -84,7 +83,6 @@ function initializeGame() {
   gameState.roundWinner = null;
   gameState.currentTask = null;
 
-  // Force both players to unready
   gameState.player1.ready = false;
   gameState.player1.score = 0;
   gameState.player1.prediction = null;
@@ -95,26 +93,29 @@ function initializeGame() {
   gameState.player2.prediction = null;
   gameState.player2.inferenceTime = 0;
 
-  console.log("Game state has been fully reset. Players must ready up again.");
+  console.log(`Game reset. Mode: ${gameState.gameMode}`);
 }
 
 function getRandomTask() {
-  const randomIndex = Math.floor(Math.random() * tasks.length);
-  return tasks[randomIndex];
+  let availableTasks = tasks;
+  if (gameState.gameMode === 'rps') {
+    const rpsNames = ['Rock', 'Paper', 'Scissor'];
+    availableTasks = tasks.filter(t => rpsNames.includes(t.name));
+  }
+  if (gameState.currentTask) {
+    const filtered = availableTasks.filter(t => t.id !== gameState.currentTask.id);
+    if (filtered.length > 0) availableTasks = filtered;
+  }
+  const randomIndex = Math.floor(Math.random() * availableTasks.length);
+  return availableTasks[randomIndex];
 }
 
 function startCountdown() {
   if (gameState.countdown > 0 || gameState.gameActive) return;
-  
-  if (gameResetTimeout) {
-    clearTimeout(gameResetTimeout);
-    gameResetTimeout = null;
-  }
-
+  if (gameResetTimeout) { clearTimeout(gameResetTimeout); gameResetTimeout = null; }
   gameState.countdown = 3;
   gameState.roundComplete = false;
   gameState.winner = null;
-  
   const countdownInterval = setInterval(() => {
     gameState.countdown--;
     if (gameState.countdown <= 0) {
@@ -140,7 +141,7 @@ function startNewTask() {
   gameState.roundWinner = null;
 }
 
-// Routes for Player 1
+// Routes
 app.post('/api/player1/ready', (req, res) => {
   const { ready } = req.body;
   gameState.player1.ready = ready;
@@ -153,14 +154,10 @@ app.post('/api/player1/ready', (req, res) => {
 app.post('/api/player1/pose', (req, res) => {
   msgCounts.player1++;
   const { prediction, confidence, cameraFrame, inferenceTime } = req.body;
-  
   gameState.player1.prediction = prediction;
   gameState.player1.poseConfidence = confidence;
   gameState.player1.inferenceTime = inferenceTime || 0;
-  if (cameraFrame) {
-    gameState.player1.cameraFrame = cameraFrame;
-  }
-  
+  if (cameraFrame) gameState.player1.cameraFrame = cameraFrame;
   if (gameState.gameActive && !gameState.roundWinner && predictionMatches(prediction, gameState.currentTask.name, confidence)) {
     gameState.player1.score++;
     gameState.roundWinner = 'player1';
@@ -169,7 +166,6 @@ app.post('/api/player1/pose', (req, res) => {
   res.json({ success: true });
 });
 
-// Routes for Player 2
 app.post('/api/player2/ready', (req, res) => {
   const { ready } = req.body;
   gameState.player2.ready = ready;
@@ -182,14 +178,10 @@ app.post('/api/player2/ready', (req, res) => {
 app.post('/api/player2/pose', (req, res) => {
   msgCounts.player2++;
   const { prediction, confidence, cameraFrame, inferenceTime } = req.body;
-  
   gameState.player2.prediction = prediction;
   gameState.player2.poseConfidence = confidence;
   gameState.player2.inferenceTime = inferenceTime || 0;
-  if (cameraFrame) {
-    gameState.player2.cameraFrame = cameraFrame;
-  }
-  
+  if (cameraFrame) gameState.player2.cameraFrame = cameraFrame;
   if (gameState.gameActive && !gameState.roundWinner && predictionMatches(prediction, gameState.currentTask.name, confidence)) {
     gameState.player2.score++;
     gameState.roundWinner = 'player2';
@@ -198,9 +190,16 @@ app.post('/api/player2/pose', (req, res) => {
   res.json({ success: true });
 });
 
-// Debug page routes
-app.get('/api/debug/state', (req, res) => {
-  res.json(gameState);
+// DEBUG ROUTES
+app.get('/api/debug/state', (req, res) => { res.json(gameState); });
+
+app.post('/api/debug/mode/set', (req, res) => {
+  const { mode } = req.body;
+  if (['normal', 'rps'].includes(mode)) {
+    gameState.gameMode = mode;
+    initializeGame();
+    res.json({ success: true, mode: gameState.gameMode });
+  } else { res.status(400).json({ success: false, error: 'Invalid mode' }); }
 });
 
 app.post('/api/debug/timer/set', (req, res) => {
@@ -224,15 +223,25 @@ app.post('/api/debug/game/start', (req, res) => {
   if (gameState.player1.ready && gameState.player2.ready) {
     startCountdown();
     res.json({ success: true });
-  } else {
-    res.json({ success: false, error: 'Both players must be ready' });
-  }
+  } else { res.status(400).json({ success: false, error: 'Both players must be ready' }); }
 });
 
-app.post('/api/debug/game/reset', (req, res) => {
-  initializeGame();
+// FORCE START (Immediate, no countdown)
+app.post('/api/debug/game/force-start', (req, res) => {
+  if (gameResetTimeout) { clearTimeout(gameResetTimeout); gameResetTimeout = null; }
+  gameState.countdown = 0;
+  startGame();
   res.json({ success: true });
 });
+
+// FORCE STOP (Immediate stop timer and active state)
+app.post('/api/debug/game/force-stop', (req, res) => {
+  gameState.gameActive = false;
+  gameState.timerRunning = false;
+  res.json({ success: true });
+});
+
+app.post('/api/debug/game/reset', (req, res) => { initializeGame(); res.json({ success: true }); });
 
 app.post('/api/debug/player/ready/:playerNum', (req, res) => {
   const { playerNum } = req.params;
@@ -242,43 +251,17 @@ app.post('/api/debug/player/ready/:playerNum', (req, res) => {
   res.json({ success: true });
 });
 
-app.get('/api/debug/tasks', (req, res) => {
-  res.json(tasks);
-});
-
-// Spectator page route
 app.get('/api/spectator/state', (req, res) => {
   res.json({
-    player1: {
-      score: gameState.player1.score,
-      prediction: gameState.player1.prediction,
-      poseConfidence: gameState.player1.poseConfidence,
-      ready: gameState.player1.ready,
-      inferenceTime: gameState.player1.inferenceTime
-    },
-    player2: {
-      score: gameState.player2.score,
-      prediction: gameState.player2.prediction,
-      poseConfidence: gameState.player2.poseConfidence,
-      ready: gameState.player2.ready,
-      inferenceTime: gameState.player2.inferenceTime
-    },
-    gameActive: gameState.gameActive,
-    countdown: gameState.countdown,
-    currentTask: gameState.currentTask,
-    timer: gameState.timer,
-    timerRunning: gameState.timerRunning,
-    roundWinner: gameState.roundWinner,
-    roundComplete: gameState.roundComplete,
-    winner: gameState.winner
+    player1: { score: gameState.player1.score, prediction: gameState.player1.prediction, poseConfidence: gameState.player1.poseConfidence, ready: gameState.player1.ready, inferenceTime: gameState.player1.inferenceTime },
+    player2: { score: gameState.player2.score, prediction: gameState.player2.prediction, poseConfidence: gameState.player2.poseConfidence, ready: gameState.player2.ready, inferenceTime: gameState.player2.inferenceTime },
+    gameActive: gameState.gameActive, gameMode: gameState.gameMode, countdown: gameState.countdown, currentTask: gameState.currentTask,
+    timer: gameState.timer, timerRunning: gameState.timerRunning, roundWinner: gameState.roundWinner, roundComplete: gameState.roundComplete, winner: gameState.winner
   });
 });
 
 app.get('/api/spectator/camera-frames', (req, res) => {
-  res.json({
-    player1Frame: gameState.player1.cameraFrame,
-    player2Frame: gameState.player2.cameraFrame
-  });
+  res.json({ player1Frame: gameState.player1.cameraFrame, player2Frame: gameState.player2.cameraFrame });
 });
 
 app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
@@ -289,10 +272,10 @@ app.get('/debug', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'd
 
 function predictionMatches(prediction, taskName, confidence) {
   if (!prediction || !taskName) return false;
-  const normalizedPrediction = prediction.toLowerCase().trim();
-  const normalizedTask = taskName.toLowerCase().trim();
+  const p = prediction.toLowerCase().trim();
+  const t = taskName.toLowerCase().trim();
   if (confidence < 0.7) return false;
-  return normalizedPrediction.includes(normalizedTask) || normalizedTask.includes(normalizedPrediction);
+  return p.includes(t) || t.includes(p);
 }
 
 setInterval(() => {
@@ -310,38 +293,23 @@ setInterval(() => {
       if (gameState.player1.score > gameState.player2.score) gameState.winner = 'player1';
       else if (gameState.player2.score > gameState.player1.score) gameState.winner = 'player2';
       else gameState.winner = 'tie';
-      gameResetTimeout = setTimeout(() => {
-        initializeGame();
-        gameResetTimeout = null;
-      }, 5000);
+      gameResetTimeout = setTimeout(() => { initializeGame(); gameResetTimeout = null; }, 5000);
     }
   }
 }, 1000);
 
 app.get('/api/player/:playerNum/data', (req, res) => {
   const { playerNum } = req.params;
-  const playerKey = `player${playerNum}`;
-  const player = gameState[playerKey];
+  const player = gameState[`player${playerNum}`];
   if (!player) return res.status(404).json({ error: 'Player not found' });
   res.json({
-    score: player.score,
-    prediction: player.prediction,
-    poseConfidence: player.poseConfidence,
-    ready: player.ready,
-    cameraFrame: player.cameraFrame,
-    inferenceTime: player.inferenceTime,
-    gameActive: gameState.gameActive,
-    countdown: gameState.countdown,
-    currentTask: gameState.currentTask,
-    timer: gameState.timer,
-    timerRunning: gameState.timerRunning,
-    roundWinner: gameState.roundWinner,
-    roundComplete: gameState.roundComplete,
-    winner: gameState.winner
+    score: player.score, prediction: player.prediction, poseConfidence: player.poseConfidence, ready: player.ready, 
+    cameraFrame: player.cameraFrame, inferenceTime: player.inferenceTime,
+    gameActive: gameState.gameActive, gameMode: gameState.gameMode, countdown: gameState.countdown, currentTask: gameState.currentTask,
+    timer: gameState.timer, timerRunning: gameState.timerRunning, roundWinner: gameState.roundWinner, 
+    roundComplete: gameState.roundComplete, winner: gameState.winner
   });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Hand Pose Game server running on http://localhost:${PORT}`);
-});
+app.listen(PORT, () => { console.log(`Hand Pose Game server running on http://localhost:${PORT}`); });

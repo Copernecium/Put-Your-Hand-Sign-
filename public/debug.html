@@ -17,8 +17,35 @@
             <div class="debug-section">
                 <h2>Game Control</h2>
                 <div class="control-box">
-                    <button id="startGameBtn" class="btn btn-primary">Start Game (Countdown)</button>
-                    <button id="resetGameBtn" class="btn btn-danger">Reset Game</button>
+                    <button id="startGameBtn" class="btn btn-primary">Start (Countdown)</button>
+                    <button id="forceStartBtn" class="btn btn-warning">Force Start (Skip)</button>
+                    <button id="forceStopBtn" class="btn btn-danger">Force Stop Game</button>
+                    <button id="resetGameBtn" class="btn btn-danger" style="border: 2px solid #000;">Full Reset</button>
+                </div>
+            </div>
+
+            <div class="debug-section">
+                <h2>Game Mode</h2>
+                <div class="input-group">
+                    <label>Select Mode:</label>
+                    <select id="modeSelect">
+                        <option value="normal">Normal Mode (All Poses)</option>
+                        <option value="rps">Rock Paper Scissor Mode</option>
+                    </select>
+                    <button id="setModeBtn" class="btn btn-info">Set Mode</button>
+                </div>
+            </div>
+
+            <div class="debug-section">
+                <h2>Timer Control</h2>
+                <div class="control-box" style="margin-bottom: 15px;">
+                    <button id="pauseTimerBtn" class="btn btn-secondary">Pause Timer</button>
+                    <button id="resumeTimerBtn" class="btn btn-success">Resume Timer</button>
+                </div>
+                <div class="input-group">
+                    <label>Set Duration (sec):</label>
+                    <input type="number" id="timerInput" min="5" max="300" value="30">
+                    <button id="setTimerBtn" class="btn">Set</button>
                 </div>
             </div>
 
@@ -30,48 +57,25 @@
                         <span id="refreshRate">0 Hz</span>
                     </div>
                     <div class="state-row">
-                        <label>Server Sending Rate (Polling):</label>
-                        <span id="sendingRate">0 Hz</span>
+                        <label>Player 1 Rate / Inference:</label>
+                        <span id="p1Stats">0 msg/s | 0 ms</span>
                     </div>
                     <div class="state-row">
-                        <label>Player 1 Received Rate:</label>
-                        <span id="p1Rate">0 msg/s</span>
-                    </div>
-                    <div class="state-row">
-                        <label>Player 2 Received Rate:</label>
-                        <span id="p2Rate">0 msg/s</span>
-                    </div>
-                    <div class="state-row">
-                        <label>Player 1 Inference Time:</label>
-                        <span id="p1Inference">0 ms</span>
-                    </div>
-                    <div class="state-row">
-                        <label>Player 2 Inference Time:</label>
-                        <span id="p2Inference">0 ms</span>
+                        <label>Player 2 Rate / Inference:</label>
+                        <span id="p2Stats">0 msg/s | 0 ms</span>
                     </div>
                 </div>
             </div>
 
             <div class="debug-section">
-                <h2>Timer Control</h2>
-                <div class="timer-control">
-                    <div class="input-group">
-                        <label>Set Game Duration (seconds):</label>
-                        <input type="number" id="timerInput" min="5" max="300" value="30">
-                        <button id="setTimerBtn" class="btn">Set</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="debug-section">
-                <h2>Player Ready Status</h2>
+                <h2>Player Ready Status (Force)</h2>
                 <div class="player-control">
                     <div class="player-control-box player1-control">
                         <h3>Player 1</h3>
                         <div id="player1ReadyStatus" class="status-badge">Not Ready</div>
                         <div class="button-group">
-                            <button id="player1ReadyBtn" class="btn btn-success">Set Ready</button>
-                            <button id="player1UnreadyBtn" class="btn btn-danger">Set Not Ready</button>
+                            <button id="player1ReadyBtn" class="btn btn-success">Force Ready</button>
+                            <button id="player1UnreadyBtn" class="btn btn-danger">Force Unready</button>
                         </div>
                     </div>
 
@@ -79,8 +83,8 @@
                         <h3>Player 2</h3>
                         <div id="player2ReadyStatus" class="status-badge">Not Ready</div>
                         <div class="button-group">
-                            <button id="player2ReadyBtn" class="btn btn-success">Set Ready</button>
-                            <button id="player2UnreadyBtn" class="btn btn-danger">Set Not Ready</button>
+                            <button id="player2ReadyBtn" class="btn btn-success">Force Ready</button>
+                            <button id="player2UnreadyBtn" class="btn btn-danger">Force Unready</button>
                         </div>
                     </div>
                 </div>
@@ -90,8 +94,12 @@
                 <h2>Game State Monitoring</h2>
                 <div class="state-display">
                     <div class="state-row">
-                        <label>Game Active:</label>
-                        <span id="gameActive">-</span>
+                        <label>Current Mode:</label>
+                        <span id="currentModeDisplay" style="font-weight: bold; color: #764ba2;">-</span>
+                    </div>
+                    <div class="state-row">
+                        <label>Game Active / Timer Running:</label>
+                        <span id="gameStatusDisplay">-</span>
                     </div>
                     <div class="state-row">
                         <label>Countdown:</label>
@@ -102,44 +110,12 @@
                         <span id="currentTask">-</span>
                     </div>
                     <div class="state-row">
-                        <label>Round Winner:</label>
-                        <span id="roundWinner">-</span>
-                    </div>
-                    <div class="state-row">
-                        <label>Timer Value:</label>
-                        <span id="timerValue">-</span>
+                        <label>Round Winner / Timer:</label>
+                        <span id="roundStatsDisplay">-</span>
                     </div>
                     <div class="state-row">
                         <label>Winner:</label>
                         <span id="winner">-</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="debug-section">
-                <h2>Player 1 Data</h2>
-                <div class="player-data">
-                    <div class="data-row">
-                        <label>Score:</label>
-                        <span id="p1Score">-</span>
-                    </div>
-                    <div class="data-row">
-                        <label>Last Prediction:</label>
-                        <span id="p1Prediction">-</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="debug-section">
-                <h2>Player 2 Data</h2>
-                <div class="player-data">
-                    <div class="data-row">
-                        <label>Score:</label>
-                        <span id="p2Score">-</span>
-                    </div>
-                    <div class="data-row">
-                        <label>Last Prediction:</label>
-                        <span id="p2Prediction">-</span>
                     </div>
                 </div>
             </div>
@@ -161,7 +137,6 @@
                             <option value="Rock">Rock</option>
                             <option value="Scissor">Scissor</option>
                         </select>
-                        <input type="number" id="confidenceInput" min="0" max="1" step="0.1" value="0.9" placeholder="Conf">
                     </div>
                     <div class="button-group">
                         <button id="simulatePlayer1Btn" class="btn btn-info">Send to P1</button>
@@ -181,88 +156,69 @@
         class DebugConsole {
             constructor() {
                 this.logMessages = [];
-                this.lastUpdate = Date.now();
                 this.updateCount = 0;
-                this.refreshRate = 0;
-                
                 this.setupEventListeners();
                 this.startMonitoring();
-                this.calculateRates();
+                this.startRateCalculator();
             }
 
             setupEventListeners() {
-                document.getElementById('startGameBtn').addEventListener('click', () => this.startGame());
-                document.getElementById('resetGameBtn').addEventListener('click', () => this.resetGame());
-                document.getElementById('setTimerBtn').addEventListener('click', () => this.setTimer());
-                document.getElementById('player1ReadyBtn').addEventListener('click', () => this.setPlayerReady('1', true));
-                document.getElementById('player1UnreadyBtn').addEventListener('click', () => this.setPlayerReady('1', false));
-                document.getElementById('player2ReadyBtn').addEventListener('click', () => this.setPlayerReady('2', true));
-                document.getElementById('player2UnreadyBtn').addEventListener('click', () => this.setPlayerReady('2', false));
-                document.getElementById('simulatePlayer1Btn').addEventListener('click', () => this.simulatePose('1'));
-                document.getElementById('simulatePlayer2Btn').addEventListener('click', () => this.simulatePose('2'));
+                document.getElementById('startGameBtn').addEventListener('click', () => this.callApi('/api/debug/game/start', 'POST', 'Start (Countdown)'));
+                document.getElementById('forceStartBtn').addEventListener('click', () => this.callApi('/api/debug/game/force-start', 'POST', 'Force Start (Skip)'));
+                document.getElementById('forceStopBtn').addEventListener('click', () => this.callApi('/api/debug/game/force-stop', 'POST', 'Force Stop'));
+                document.getElementById('resetGameBtn').addEventListener('click', () => this.callApi('/api/debug/game/reset', 'POST', 'Full Reset'));
+                
+                document.getElementById('pauseTimerBtn').addEventListener('click', () => this.callApi('/api/debug/timer/stop', 'POST', 'Timer Paused'));
+                document.getElementById('resumeTimerBtn').addEventListener('click', () => this.callApi('/api/debug/timer/start', 'POST', 'Timer Resumed'));
+                
+                document.getElementById('setModeBtn').addEventListener('click', () => {
+                    const mode = document.getElementById('modeSelect').value;
+                    this.callApi('/api/debug/mode/set', 'POST', `Mode: ${mode}`, { mode });
+                });
+
+                document.getElementById('setTimerBtn').addEventListener('click', () => {
+                    const seconds = document.getElementById('timerInput').value;
+                    this.callApi('/api/debug/timer/set', 'POST', `Timer: ${seconds}s`, { seconds });
+                });
+
+                document.getElementById('player1ReadyBtn').addEventListener('click', () => this.setReady('1', true));
+                document.getElementById('player1UnreadyBtn').addEventListener('click', () => this.setReady('1', false));
+                document.getElementById('player2ReadyBtn').addEventListener('click', () => this.setReady('2', true));
+                document.getElementById('player2UnreadyBtn').addEventListener('click', () => this.setReady('2', false));
+
+                document.getElementById('simulatePlayer1Btn').addEventListener('click', () => this.simulate('1'));
+                document.getElementById('simulatePlayer2Btn').addEventListener('click', () => this.simulate('2'));
             }
 
-            calculateRates() {
+            async callApi(url, method, actionName, body = null) {
+                try {
+                    const options = { method };
+                    if (body) {
+                        options.headers = { 'Content-Type': 'application/json' };
+                        options.body = JSON.stringify(body);
+                    }
+                    const response = await fetch(url, options);
+                    const result = await response.json();
+                    if (result.success) this.addLog(`✓ ${actionName} successful`);
+                    else this.addLog(`✗ ${actionName} failed: ${result.error || 'Unknown error'}`);
+                } catch (e) { this.addLog(`✗ Error ${actionName}: ${e.message}`); }
+            }
+
+            async setReady(num, state) {
+                await this.callApi(`/api/debug/player/ready/${num}`, 'POST', `P${num} Ready: ${state}`, { ready: state });
+            }
+
+            async simulate(num) {
+                const pose = document.getElementById('poseSelect').value;
+                if (!pose) return this.addLog('✗ Select a pose');
+                await this.callApi(`/api/player${num}/pose`, 'POST', `Sim P${num}: ${pose}`, { prediction: pose, confidence: 0.95 });
+            }
+
+            startRateCalculator() {
                 setInterval(() => {
-                    this.refreshRate = this.updateCount;
-                    document.getElementById('refreshRate').textContent = this.refreshRate + ' Hz';
-                    document.getElementById('sendingRate').textContent = this.refreshRate + ' Hz'; // Since polling matches refresh
+                    document.getElementById('refreshRate').textContent = this.updateCount + ' Hz';
                     this.updateCount = 0;
                 }, 1000);
-            }
-
-            async startGame() {
-                try {
-                    const response = await fetch('/api/debug/game/start', { method: 'POST' });
-                    const result = await response.json();
-                    if (result.success) this.addLog('✓ Game/Countdown started');
-                    else this.addLog('✗ ' + (result.error || 'Failed'));
-                } catch (error) { this.addLog('✗ Error: ' + error.message); }
-            }
-
-            async resetGame() {
-                try {
-                    await fetch('/api/debug/game/reset', { method: 'POST' });
-                    this.addLog('✓ Game reset');
-                } catch (error) { this.addLog('✗ Error: ' + error.message); }
-            }
-
-            async setTimer() {
-                const seconds = document.getElementById('timerInput').value;
-                try {
-                    await fetch('/api/debug/timer/set', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ seconds: parseInt(seconds) })
-                    });
-                    this.addLog(`✓ Game duration set to ${seconds}s`);
-                } catch (error) { this.addLog('✗ Error: ' + error.message); }
-            }
-
-            async setPlayerReady(playerNum, ready) {
-                try {
-                    await fetch(`/api/debug/player/ready/${playerNum}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ready })
-                    });
-                    this.addLog(`✓ Player ${playerNum} ready: ${ready}`);
-                } catch (error) { this.addLog('✗ Error: ' + error.message); }
-            }
-
-            async simulatePose(playerNum) {
-                const pose = document.getElementById('poseSelect').value;
-                const confidence = parseFloat(document.getElementById('confidenceInput').value);
-                if (!pose) return this.addLog('✗ Select a pose');
-                try {
-                    const endpoint = `/api/player${playerNum}/pose`;
-                    await fetch(endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ prediction: pose, confidence, cameraFrame: null })
-                    });
-                    this.addLog(`✓ Sim P${playerNum}: ${pose}`);
-                } catch (error) { this.addLog('✗ Error: ' + error.message); }
             }
 
             async updateGameState() {
@@ -271,43 +227,39 @@
                     const response = await fetch('/api/debug/state');
                     const state = await response.json();
                     
-                    document.getElementById('gameActive').textContent = state.gameActive ? '✓ Yes' : '✗ No';
+                    document.getElementById('currentModeDisplay').textContent = state.gameMode.toUpperCase();
+                    document.getElementById('gameStatusDisplay').textContent = `${state.gameActive ? 'ACTIVE' : 'INACTIVE'} / ${state.timerRunning ? 'RUNNING' : 'STOPPED'}`;
                     document.getElementById('countdownValue').textContent = state.countdown > 0 ? state.countdown : 'None';
                     document.getElementById('currentTask').textContent = state.currentTask ? state.currentTask.name : 'None';
-                    document.getElementById('roundWinner').textContent = state.roundWinner || 'None';
-                    document.getElementById('timerValue').textContent = state.timer + 's';
+                    document.getElementById('roundStatsDisplay').textContent = `Round Win: ${state.roundWinner || 'None'} | Timer: ${state.timer}s`;
                     document.getElementById('winner').textContent = state.winner || 'None';
                     
-                    document.getElementById('p1Rate').textContent = (state.msgRates?.player1 || 0) + ' msg/s';
-                    document.getElementById('p2Rate').textContent = (state.msgRates?.player2 || 0) + ' msg/s';
-                    document.getElementById('p1Inference').textContent = (state.player1.inferenceTime || 0).toFixed(1) + ' ms';
-                    document.getElementById('p2Inference').textContent = (state.player2.inferenceTime || 0).toFixed(1) + ' ms';
+                    document.getElementById('p1Stats').textContent = `${state.msgRates.player1} msg/s | ${state.player1.inferenceTime.toFixed(1)} ms`;
+                    document.getElementById('p2Stats').textContent = `${state.msgRates.player2} msg/s | ${state.player2.inferenceTime.toFixed(1)} ms`;
 
-                    document.getElementById('player1ReadyStatus').textContent = state.player1.ready ? '✓ Ready' : '✗ Not Ready';
-                    document.getElementById('player1ReadyStatus').classList.toggle('ready', state.player1.ready);
-                    document.getElementById('p1Score').textContent = state.player1.score;
-                    document.getElementById('p1Prediction').textContent = state.player1.prediction || '-';
-                    
-                    document.getElementById('player2ReadyStatus').textContent = state.player2.ready ? '✓ Ready' : '✗ Not Ready';
-                    document.getElementById('player2ReadyStatus').classList.toggle('ready', state.player2.ready);
-                    document.getElementById('p2Score').textContent = state.player2.score;
-                    document.getElementById('p2Prediction').textContent = state.player2.prediction || '-';
-                } catch (error) { console.error('Error:', error); }
+                    this.updateBadge('player1ReadyStatus', state.player1.ready);
+                    this.updateBadge('player2ReadyStatus', state.player2.ready);
+                } catch (e) {}
             }
 
-            startMonitoring() {
-                // Poll at 20 Hz for smooth debugging
-                setInterval(() => this.updateGameState(), 50);
+            updateBadge(id, ready) {
+                const el = document.getElementById(id);
+                el.textContent = ready ? '✓ READY' : '✗ NOT READY';
+                el.className = 'status-badge ' + (ready ? 'ready' : '');
+                el.style.background = ready ? '#10b981' : '#ef4444';
+                el.style.color = 'white';
             }
+
+            startMonitoring() { setInterval(() => this.updateGameState(), 100); }
 
             addLog(message) {
                 const timestamp = new Date().toLocaleTimeString();
                 this.logMessages.unshift(`[${timestamp}] ${message}`);
-                if (this.logMessages.length > 20) this.logMessages.pop();
+                if (this.logMessages.length > 15) this.logMessages.pop();
                 document.getElementById('logContent').innerHTML = this.logMessages.map(msg => `<div class="log-entry">${msg}</div>`).join('');
             }
         }
-        const debug = new DebugConsole();
+        new DebugConsole();
     </script>
 </body>
 </html>

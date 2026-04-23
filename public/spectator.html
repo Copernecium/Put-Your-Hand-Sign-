@@ -16,6 +16,10 @@
         <div class="spectator-content">
             <div class="game-status">
                 <div class="status-box">
+                    <h2>Game Mode</h2>
+                    <div id="gameModeText" style="font-weight: bold; font-size: 18px; color: #764ba2; text-transform: uppercase;">-</div>
+                </div>
+                <div class="status-box">
                     <h2>Current Task</h2>
                     <div id="currentTaskName" class="task-display">Waiting for game...</div>
                     <div id="currentTaskDesc" class="task-description"></div>
@@ -100,6 +104,9 @@
                 try {
                     const response = await fetch('/api/spectator/state');
                     const state = await response.json();
+
+                    // Update mode
+                    document.getElementById('gameModeText').textContent = state.gameMode.toUpperCase();
 
                     // Update task
                     if (state.currentTask) {
