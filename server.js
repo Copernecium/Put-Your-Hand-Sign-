@@ -39,14 +39,16 @@ let gameState = {
 
 // Task definitions
 const tasks = [
-  { id: 1, name: 'Peace Sign', image: '/images/peace-sign.png', description: 'Two fingers up, peace gesture' },
-  { id: 2, name: 'Thumbs Up', image: '/images/thumbs-up.png', description: 'Thumb pointing upward' },
-  { id: 3, name: 'Rock Sign', image: '/images/rock-sign.png', description: 'Index and pinky finger up' },
-  { id: 4, name: 'OK Sign', image: '/images/ok-sign.png', description: 'Thumb and index finger forming circle' },
-  { id: 5, name: 'Open Hand', image: '/images/open-hand.png', description: 'All five fingers extended' },
-  { id: 6, name: 'Fist', image: '/images/fist.png', description: 'Closed fist' },
-  { id: 7, name: 'Point', image: '/images/point.png', description: 'Index finger pointing' },
-  { id: 8, name: 'Victory', image: '/images/victory.png', description: 'Two fingers in V shape' }
+  { id: 1, name: 'Bird', image: '/images/bird.png', description: 'Make a bird shape with your hand' },
+  { id: 2, name: 'Bull', image: '/images/bull.png', description: 'Two fingers up like horns' },
+  { id: 3, name: 'Crab', image: '/images/crab.png', description: 'Fingers moving like claws' },
+  { id: 4, name: 'Deer', image: '/images/deer.png', description: 'Hand shape like a deer' },
+  { id: 5, name: 'Dog', image: '/images/dog.png', description: 'Hand shape like a dog' },
+  { id: 6, name: 'Duck', image: '/images/duck.png', description: 'Fingers touching like a beak' },
+  { id: 7, name: 'Elephant', image: '/images/elephant.png', description: 'Arm or hand like a trunk' },
+  { id: 8, name: 'Paper', image: '/images/paper.png', description: 'All five fingers extended' },
+  { id: 9, name: 'Rock', image: '/images/rock.png', description: 'Closed fist' },
+  { id: 10, name: 'Scissor', image: '/images/scissor.png', description: 'Two fingers in V shape' }
 ];
 
 let currentTaskIndex = 0;
