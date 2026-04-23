@@ -133,8 +133,8 @@ class PlayerClient {
     }
 
     startStatePolling() {
-        // Poll frequently for smooth video feed (10 FPS)
-        setInterval(() => this.updateGameState(), 100);
+        // Poll frequently for smooth video feed (20 FPS)
+        setInterval(() => this.updateGameState(), 50);
     }
 
     showStatus(message, type) {

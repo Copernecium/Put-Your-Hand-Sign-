@@ -29,7 +29,7 @@ args = parser.parse_args()
 SERVER_URL = args.server
 PLAYER_ID = args.player
 CAMERA_INDEX = args.camera
-SEND_INTERVAL = 0.5  # Slow down to 2 frames per second for ngrok stability
+SEND_INTERVAL = 0.1  # High speed (10 FPS)
 
 # Create a persistent session to speed up requests and bypass ngrok warning
 session = requests.Session()
@@ -51,8 +51,10 @@ print("⌨️ Press 'q' to close program")
 last_send_time = time.time()
 
 def encode_frame_to_base64(frame):
-    """Encode frame to base64 string"""
-    _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+    """Encode frame to base64 string with heavy optimization for speed"""
+    # Resize to 240p to reduce data size by ~80%
+    small_frame = cv2.resize(frame, (240, 180))
+    _, buffer = cv2.imencode('.jpg', small_frame, [cv2.IMWRITE_JPEG_QUALITY, 40])
     frame_base64 = base64.b64encode(buffer).decode('utf-8')
     return frame_base64
 
