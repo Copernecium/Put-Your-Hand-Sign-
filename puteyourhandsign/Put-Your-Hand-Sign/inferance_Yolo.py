@@ -29,7 +29,11 @@ args = parser.parse_args()
 SERVER_URL = args.server
 PLAYER_ID = args.player
 CAMERA_INDEX = args.camera
-SEND_INTERVAL = 0.1  # Send frames every 0.1 seconds
+SEND_INTERVAL = 0.5  # Slow down to 2 frames per second for ngrok stability
+
+# Create a persistent session to speed up requests and bypass ngrok warning
+session = requests.Session()
+session.headers.update({'ngrok-skip-browser-warning': 'true'})
 
 # 1. Load YOLO model
 print(f"Loading YOLO model from: {MODEL_PATH}")
@@ -53,7 +57,7 @@ def encode_frame_to_base64(frame):
     return frame_base64
 
 def send_pose_to_server(prediction, confidence, frame):
-    """Send prediction and camera frame to server"""
+    """Send prediction and camera frame to server using persistent session"""
     try:
         endpoint = f"{SERVER_URL}/api/{PLAYER_ID}/pose"
         frame_base64 = encode_frame_to_base64(frame)
@@ -64,7 +68,8 @@ def send_pose_to_server(prediction, confidence, frame):
             'cameraFrame': frame_base64
         }
         
-        response = requests.post(endpoint, json=payload, timeout=5)
+        # Use the session instead of requests.post for better performance
+        response = session.post(endpoint, json=payload, timeout=3)
         
         if response.status_code == 200:
             return True
