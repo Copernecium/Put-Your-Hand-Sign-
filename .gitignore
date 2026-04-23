@@ -1,38 +1,17 @@
-# Dependencies
-node_modules/
-*.pyc
+# Python
+.venv/
 __pycache__/
 *.py[cod]
 *$py.class
-*.egg-info/
-dist/
-build/
 
-# Environment
-.env
-.env.local
-.venv/
-venv/
-ENV/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# Logs
-*.log
-logs/
+# Node.js
+node_modules/
 npm-debug.log*
 
-# Cache
-.cache/
-*.cache
+# OS
+.DS_Store
+Thumbs.db
 
-# Temp files
-*.tmp
-temp/
-tmp/
+# Project specific
+yolo26_ob_results/runs/*
+!yolo26_ob_results/runs/detect/yolo26_ob_experiment/weights/best.pt
