@@ -3,6 +3,15 @@ class PlayerClient {
         this.playerId = playerId;
         this.playerNum = playerId.replace('player', '');
         this.isReady = false;
+        this.modalShown = false;
+        
+        // Performance Tracking
+        this.fpsCount = 0;
+        this.lastFpsUpdate = Date.now();
+        this.currentFps = 0;
+        this.showFps = false;
+        this.showInference = false;
+        this.currentInference = 0;
         
         // UI Elements
         this.videoElement = document.getElementById('cameraVideo');
@@ -10,24 +19,71 @@ class PlayerClient {
         this.readyButton = document.getElementById('readyButton');
         this.statusMessage = document.getElementById('statusMessage');
         
-        // Use an Image object to draw to canvas since we're receiving base64 JPEGs
+        this.fpsToggle = document.getElementById('fpsToggle');
+        this.fpsDisplay = document.getElementById('fpsDisplay');
+        this.inferenceToggle = document.getElementById('inferenceToggle');
+        this.inferenceDisplay = document.getElementById('inferenceDisplay');
+        
+        // Modal Elements
+        this.resultModal = document.getElementById('resultModal');
+        this.closeModalBtn = document.getElementById('closeModalBtn');
+        this.modalTitle = document.getElementById('modalTitle');
+        this.modalIcon = document.getElementById('modalIcon');
+        this.modalMessage = document.getElementById('modalMessage');
+        this.modalFinalScore = document.getElementById('modalFinalScore');
+        
         this.displayImage = new Image();
         
         this.setupEventListeners();
         this.startStatePolling();
+        this.startPerformanceTracker();
     }
 
     setupEventListeners() {
         this.readyButton.addEventListener('click', () => this.toggleReady());
+        
+        if (this.fpsToggle) {
+            this.fpsToggle.addEventListener('change', (e) => {
+                this.showFps = e.target.checked;
+                this.fpsDisplay.style.display = this.showFps ? 'inline' : 'none';
+            });
+        }
+
+        if (this.inferenceToggle) {
+            this.inferenceToggle.addEventListener('change', (e) => {
+                this.showInference = e.target.checked;
+                this.inferenceDisplay.style.display = this.showInference ? 'inline' : 'none';
+            });
+        }
+
+        if (this.closeModalBtn) {
+            this.closeModalBtn.addEventListener('click', () => {
+                this.resultModal.style.display = 'none';
+            });
+        }
+    }
+
+    startPerformanceTracker() {
+        setInterval(() => {
+            const now = Date.now();
+            const elapsed = (now - this.lastFpsUpdate) / 1000;
+            if (elapsed >= 1) {
+                this.currentFps = Math.round(this.fpsCount / elapsed);
+                if (this.fpsDisplay) this.fpsDisplay.textContent = `FPS: ${this.currentFps}`;
+                if (this.inferenceDisplay) this.inferenceDisplay.textContent = `AI: ${this.currentInference.toFixed(1)}ms`;
+                this.fpsCount = 0;
+                this.lastFpsUpdate = now;
+            }
+        }, 500);
     }
 
     toggleReady() {
         this.isReady = !this.isReady;
         this.sendReadyStatus(this.isReady);
-        this.updateReadyButton();
+        this.updateReadyButtonUI();
     }
 
-    updateReadyButton() {
+    updateReadyButtonUI() {
         if (this.isReady) {
             this.readyButton.textContent = 'Unready';
             this.readyButton.classList.add('active');
@@ -47,107 +103,113 @@ class PlayerClient {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ready })
             });
-            
-            if (!response.ok) {
-                throw new Error('Failed to send ready status');
-            }
+            if (!response.ok) throw new Error('Failed to send ready status');
         } catch (error) {
             this.showStatus('Error: ' + error.message, 'error');
             this.isReady = !this.isReady;
-            this.updateReadyButton();
+            this.updateReadyButtonUI();
         }
     }
 
     async updateGameState() {
         try {
-            // Fetch both game state and camera frame from our new endpoint
             const response = await fetch(`/api/player/${this.playerNum}/data`);
             const state = await response.json();
 
-            // Update score
-            document.getElementById('playerScore').textContent = state.score;
+            if (this.isReady !== state.ready && !state.gameActive && state.countdown === 0) {
+                this.isReady = state.ready;
+                this.updateReadyButtonUI();
+            }
 
-            // Update timer
+            document.getElementById('playerScore').textContent = state.score;
+            this.currentInference = state.inferenceTime || 0;
+
             if (state.timerRunning) {
                 const minutes = Math.floor(state.timer / 60);
                 const seconds = state.timer % 60;
-                document.getElementById('playerTimer').textContent = 
-                    `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                document.getElementById('playerTimer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
             } else {
-                if (state.timer === 0 && state.roundComplete) {
-                    document.getElementById('playerTimer').textContent = 'Done';
+                document.getElementById('playerTimer').textContent = (state.timer === 0 && state.roundComplete) ? 'Done' : '-';
+            }
+
+            const prediction = state.prediction;
+            document.getElementById('playerPrediction').textContent = prediction ? 
+                `${prediction} (${(state.poseConfidence * 100).toFixed(0)}%)` : 'Waiting...';
+
+            if (state.countdown > 0) {
+                this.showStatus(`Starting in ${state.countdown}...`, 'warning');
+                this.readyButton.style.display = 'none';
+                this.modalShown = false; 
+            } else if (state.gameActive) {
+                this.readyButton.style.display = 'none';
+                this.modalShown = false; 
+                if (state.currentTask) document.getElementById('currentTask').textContent = state.currentTask.name;
+
+                if (state.roundWinner) {
+                    if (state.roundWinner === this.playerId) this.showStatus('You got it! +1', 'success');
+                    else this.showStatus(`${state.roundWinner === 'player1' ? 'Player 1' : 'Player 2'} got it!`, 'error');
                 } else {
-                    document.getElementById('playerTimer').textContent = '-';
+                    this.showStatus('Perform the pose!', 'info');
+                }
+            } else {
+                this.readyButton.style.display = 'block';
+                if (state.roundComplete) {
+                    if (!this.modalShown && state.winner) {
+                        this.showResultModal(state.winner, state.score);
+                        this.modalShown = true;
+                    }
+                    if (state.winner === 'tie') this.showStatus('Game Over: It\'s a tie!', 'warning');
+                    else if (state.winner === this.playerId) this.showStatus('🎉 Game Over: YOU WON! 🎉', 'success');
+                    else this.showStatus('Game Over: Opponent won', 'error');
+                } else {
+                    document.getElementById('currentTask').textContent = 'Waiting for game start...';
                 }
             }
 
-            // Update prediction
-            const prediction = state.prediction;
-            document.getElementById('playerPrediction').textContent = prediction ? 
-                `${prediction} (${(state.poseConfidence * 100).toFixed(0)}%)` : 
-                'Waiting...';
-
-            // Update current task
-            if (state.currentTask) {
-                document.getElementById('currentTask').textContent = state.currentTask.name;
-            } else {
-                document.getElementById('currentTask').textContent = 'Waiting for game start...';
-            }
-
-            // Update Camera Feed (from Python AI)
             if (state.cameraFrame) {
-                // The frame is base64 string, update the image source
-                // Ensure it has the data:image/jpeg;base64, prefix if not already there
+                this.fpsCount++;
                 const prefix = state.cameraFrame.startsWith('data:image') ? '' : 'data:image/jpeg;base64,';
                 this.displayImage.onload = () => {
                     const ctx = this.canvasElement.getContext('2d');
                     this.canvasElement.width = this.displayImage.width;
                     this.canvasElement.height = this.displayImage.height;
                     ctx.drawImage(this.displayImage, 0, 0);
-                    
-                    // Hide video element and show canvas if not already
                     if (this.videoElement) this.videoElement.style.display = 'none';
                     this.canvasElement.style.display = 'block';
                 };
                 this.displayImage.src = prefix + state.cameraFrame;
-
-                // Update status badge
-                const statusBadge = document.getElementById('cameraStatus');
-                statusBadge.textContent = 'Camera: Streaming';
-                statusBadge.style.background = 'rgba(16, 185, 129, 0.9)';
-            }
-
-            // Show result if round is complete
-            if (state.roundComplete && state.winner) {
-                if (state.winner === this.playerId) {
-                    this.showStatus('🎉 You Won This Round!', 'success');
-                } else if (state.winner === 'tie') {
-                    this.showStatus('Round ended in a tie', 'success');
-                } else {
-                    this.showStatus('Opponent won this round', 'error');
-                }
+                document.getElementById('cameraStatus').textContent = 'AI Feed: Live';
             }
         } catch (error) {
             console.error('Error updating game state:', error);
         }
     }
 
+    showResultModal(winner, finalScore) {
+        if (!this.resultModal) return;
+        this.modalFinalScore.textContent = finalScore;
+        if (winner === 'tie') {
+            this.modalIcon.textContent = '🤝';
+            this.modalTitle.textContent = "It's a Tie!";
+            this.modalMessage.textContent = "Great match! Both players were equally skilled.";
+        } else if (winner === this.playerId) {
+            this.modalIcon.textContent = '🏆';
+            this.modalTitle.textContent = "You Won!";
+            this.modalMessage.textContent = "Incredible performance! You're the hand sign master.";
+        } else {
+            this.modalIcon.textContent = '💔';
+            this.modalTitle.textContent = "You Lost";
+            this.modalMessage.textContent = "Nice try! Better luck in the next round.";
+        }
+        this.resultModal.style.display = 'flex';
+    }
+
     startStatePolling() {
-        // Poll frequently for smooth video feed (20 FPS)
         setInterval(() => this.updateGameState(), 50);
     }
 
     showStatus(message, type) {
         this.statusMessage.textContent = message;
         this.statusMessage.className = `status-message ${type}`;
-        
-        if (type === 'success') {
-            setTimeout(() => {
-                if (this.statusMessage.textContent === message) {
-                    this.statusMessage.textContent = '';
-                    this.statusMessage.className = 'status-message';
-                }
-            }, 3000);
-        }
     }
 }

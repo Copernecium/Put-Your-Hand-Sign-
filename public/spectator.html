@@ -91,7 +91,7 @@
                 this.updateInterval = setInterval(() => {
                     this.updateGameState();
                     this.updateCameraFrames();
-                }, 1000);
+                }, 50);
                 this.updateGameState();
                 this.updateCameraFrames();
             }
@@ -142,27 +142,35 @@
                         const winnerText = document.getElementById('winnerText');
                         
                         if (state.winner === 'tie') {
-                            winnerText.textContent = "It's a Tie!";
+                            winnerText.textContent = "Final Result: It's a Tie!";
                         } else if (state.winner === 'player1') {
-                            winnerText.textContent = 'Player 1 Wins This Round! 🎉';
+                            winnerText.textContent = '🎉 Player 1 Wins the Game! 🎉';
                         } else {
-                            winnerText.textContent = 'Player 2 Wins This Round! 🎉';
+                            winnerText.textContent = '🎉 Player 2 Wins the Game! 🎉';
                         }
                         
                         announcement.style.display = 'block';
-                        document.getElementById('gameStatusText').textContent = 'Round Complete! Review the winner.';
+                        document.getElementById('gameStatusText').textContent = 'Game Over! Resetting soon...';
+                    } else if (state.countdown > 0) {
+                        document.getElementById('winnerAnnouncement').style.display = 'none';
+                        document.getElementById('currentTaskName').textContent = 'READY?';
+                        document.getElementById('currentTaskDesc').textContent = `Starting in ${state.countdown}...`;
+                        document.getElementById('gameStatusText').textContent = 'Get ready to pose!';
                     } else if (state.gameActive) {
                         document.getElementById('winnerAnnouncement').style.display = 'none';
-                        document.getElementById('gameStatusText').textContent = 
-                            'Game Active - Both players performing poses...';
+                        
+                        if (state.roundWinner) {
+                            const winner = state.roundWinner === 'player1' ? 'Player 1' : 'Player 2';
+                            document.getElementById('gameStatusText').textContent = `✨ ${winner} scored a point! ✨`;
+                        } else {
+                            document.getElementById('gameStatusText').textContent = 'Match the pose as fast as you can!';
+                        }
                     } else if (state.player1.ready && state.player2.ready) {
                         document.getElementById('winnerAnnouncement').style.display = 'none';
-                        document.getElementById('gameStatusText').textContent = 
-                            'Both players ready! Game will start soon...';
+                        document.getElementById('gameStatusText').textContent = 'Both players ready! Countdown starting...';
                     } else {
                         document.getElementById('winnerAnnouncement').style.display = 'none';
-                        document.getElementById('gameStatusText').textContent = 
-                            'Waiting for players to be ready...';
+                        document.getElementById('gameStatusText').textContent = 'Waiting for players to be ready...';
                     }
                 } catch (error) {
                     console.error('Error updating spectator view:', error);

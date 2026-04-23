@@ -44,6 +44,15 @@
 
                 <div class="button-group">
                     <button id="readyButton" class="btn btn-primary">Ready To Play</button>
+                    <div class="toggle-container">
+                        <input type="checkbox" id="fpsToggle">
+                        <label for="fpsToggle">Show FPS</label>
+                        <span id="fpsDisplay" class="fps-counter" style="display: none;">FPS: 0</span>
+                        
+                        <input type="checkbox" id="inferenceToggle" style="margin-left: 15px;">
+                        <label for="inferenceToggle">Show Inference</label>
+                        <span id="inferenceDisplay" class="fps-counter" style="display: none; background: #10b981;">AI: 0ms</span>
+                    </div>
                 </div>
 
                 <div id="statusMessage" class="status-message"></div>
@@ -52,6 +61,23 @@
 
         <div class="footer-info">
             <p>Instructions: Press "Ready To Play" to indicate you're ready. Keep your hand visible in the camera frame.</p>
+        </div>
+
+        <!-- Result Modal -->
+        <div id="resultModal" class="modal">
+            <div class="modal-content">
+                <div id="modalIcon" class="modal-icon">🏆</div>
+                <h2 id="modalTitle">You Won!</h2>
+                <div class="modal-body">
+                    <p id="modalMessage">Great job!</p>
+                    <div class="modal-score">
+                        <span id="modalFinalScore">0</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="closeModalBtn" class="btn btn-primary">Close</button>
+                </div>
+            </div>
         </div>
     </div>
 
