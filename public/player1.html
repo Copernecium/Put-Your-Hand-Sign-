@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player 1 - Hand Pose Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="page player-page player1-page">
+        <div class="header-bar">
+            <a href="/" class="back-button">← Home</a>
+            <h1>Player 1</h1>
+        </div>
+
+        <div class="player-content">
+            <div class="camera-section">
+                <div class="camera-container">
+                    <canvas id="cameraCanvas" style="display: none; width: 100%; height: auto; border-radius: 8px;"></canvas>
+                    <div id="cameraStatus" class="status-badge">AI Feed: Off</div>
+                </div>
+            </div>
+
+            <div class="game-info">
+                <div class="score-display">
+                    <div class="score-item">
+                        <label>Your Score</label>
+                        <div id="playerScore" class="score-value">0</div>
+                    </div>
+                    <div class="score-item">
+                        <label>Timer</label>
+                        <div id="playerTimer" class="timer-value">-</div>
+                    </div>
+                    <div class="score-item">
+                        <label>Prediction</label>
+                        <div id="playerPrediction" class="prediction-value">Waiting...</div>
+                    </div>
+                </div>
+
+                <div class="task-info">
+                    <label>Current Task:</label>
+                    <div id="currentTask" class="task-name">Waiting for game start...</div>
+                </div>
+
+                <div class="button-group">
+                    <button id="readyButton" class="btn btn-primary">Ready To Play</button>
+                </div>
+
+                <div id="statusMessage" class="status-message"></div>
+            </div>
+        </div>
+
+        <div class="footer-info">
+            <p>Instructions: Press "Ready To Play" to indicate you're ready. Keep your hand visible in the camera frame.</p>
+        </div>
+    </div>
+
+    <script src="player.js"></script>
+    <script>
+        // Player 1 specific initialization
+        const player = new PlayerClient('player1');
+    </script>
+</body>
+</html>

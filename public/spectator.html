@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spectator - Hand Pose Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="page spectator-page">
+        <div class="header-bar">
+            <a href="/" class="back-button">← Home</a>
+            <h1>Spectator View</h1>
+        </div>
+
+        <div class="spectator-content">
+            <div class="game-status">
+                <div class="status-box">
+                    <h2>Current Task</h2>
+                    <div id="currentTaskName" class="task-display">Waiting for game...</div>
+                    <div id="currentTaskDesc" class="task-description"></div>
+                </div>
+                <div class="status-box">
+                    <h2>Timer</h2>
+                    <div id="gameTimer" class="timer-display">0:00</div>
+                </div>
+            </div>
+
+            <div class="players-comparison">
+                <div class="player-view player1-view">
+                    <h2>Player 1</h2>
+                    <div class="status-indicator">
+                        <div id="player1Ready" class="ready-badge">Not Ready</div>
+                    </div>
+                    <img id="player1Camera" class="camera-feed" alt="Player 1 Camera Feed" />
+                    <div class="info-box">
+                        <div class="info-row">
+                            <label>Score:</label>
+                            <span id="player1Score">0</span>
+                        </div>
+                        <div class="info-row">
+                            <label>Current Prediction:</label>
+                            <span id="player1Prediction" class="prediction-text">-</span>
+                        </div>
+                        <div class="info-row">
+                            <label>Confidence:</label>
+                            <span id="player1Confidence">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="vs-divider">VS</div>
+
+                <div class="player-view player2-view">
+                    <h2>Player 2</h2>
+                    <div class="status-indicator">
+                        <div id="player2Ready" class="ready-badge">Not Ready</div>
+                    </div>
+                    <img id="player2Camera" class="camera-feed" alt="Player 2 Camera Feed" />
+                    <div class="info-box">
+                        <div class="info-row">
+                            <label>Score:</label>
+                            <span id="player2Score">0</span>
+                        </div>
+                        <div class="info-row">
+                            <label>Current Prediction:</label>
+                            <span id="player2Prediction" class="prediction-text">-</span>
+                        </div>
+                        <div class="info-row">
+                            <label>Confidence:</label>
+                            <span id="player2Confidence">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="winnerAnnouncement" class="winner-announcement" style="display: none;">
+                <h2 id="winnerText"></h2>
+                <p>Click to start next round...</p>
+            </div>
+
+            <div class="game-status-footer">
+                <p id="gameStatusText">Waiting for players to be ready...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SpectatorClient {
+            constructor() {
+                this.updateInterval = setInterval(() => {
+                    this.updateGameState();
+                    this.updateCameraFrames();
+                }, 1000);
+                this.updateGameState();
+                this.updateCameraFrames();
+            }
+
+            async updateGameState() {
+                try {
+                    const response = await fetch('/api/spectator/state');
+                    const state = await response.json();
+
+                    // Update task
+                    if (state.currentTask) {
+                        document.getElementById('currentTaskName').textContent = state.currentTask.name;
+                        document.getElementById('currentTaskDesc').textContent = state.currentTask.description;
+                    } else {
+                        document.getElementById('currentTaskName').textContent = 'Waiting for game...';
+                        document.getElementById('currentTaskDesc').textContent = '';
+                    }
+
+                    // Update timer
+                    const minutes = Math.floor(state.timer / 60);
+                    const seconds = state.timer % 60;
+                    document.getElementById('gameTimer').textContent = 
+                        `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                    // Update player 1
+                    document.getElementById('player1Score').textContent = state.player1.score;
+                    document.getElementById('player1Prediction').textContent = 
+                        state.player1.prediction || '-';
+                    document.getElementById('player1Confidence').textContent = 
+                        state.player1.poseConfidence ? (state.player1.poseConfidence * 100).toFixed(0) + '%' : '-';
+                    document.getElementById('player1Ready').textContent = 
+                        state.player1.ready ? '✓ Ready' : 'Not Ready';
+                    document.getElementById('player1Ready').classList.toggle('ready', state.player1.ready);
+
+                    // Update player 2
+                    document.getElementById('player2Score').textContent = state.player2.score;
+                    document.getElementById('player2Prediction').textContent = 
+                        state.player2.prediction || '-';
+                    document.getElementById('player2Confidence').textContent = 
+                        state.player2.poseConfidence ? (state.player2.poseConfidence * 100).toFixed(0) + '%' : '-';
+                    document.getElementById('player2Ready').textContent = 
+                        state.player2.ready ? '✓ Ready' : 'Not Ready';
+                    document.getElementById('player2Ready').classList.toggle('ready', state.player2.ready);
+
+                    // Update game status
+                    if (state.roundComplete && state.winner) {
+                        const announcement = document.getElementById('winnerAnnouncement');
+                        const winnerText = document.getElementById('winnerText');
+                        
+                        if (state.winner === 'tie') {
+                            winnerText.textContent = "It's a Tie!";
+                        } else if (state.winner === 'player1') {
+                            winnerText.textContent = 'Player 1 Wins This Round! 🎉';
+                        } else {
+                            winnerText.textContent = 'Player 2 Wins This Round! 🎉';
+                        }
+                        
+                        announcement.style.display = 'block';
+                        document.getElementById('gameStatusText').textContent = 'Round Complete! Review the winner.';
+                    } else if (state.gameActive) {
+                        document.getElementById('winnerAnnouncement').style.display = 'none';
+                        document.getElementById('gameStatusText').textContent = 
+                            'Game Active - Both players performing poses...';
+                    } else if (state.player1.ready && state.player2.ready) {
+                        document.getElementById('winnerAnnouncement').style.display = 'none';
+                        document.getElementById('gameStatusText').textContent = 
+                            'Both players ready! Game will start soon...';
+                    } else {
+                        document.getElementById('winnerAnnouncement').style.display = 'none';
+                        document.getElementById('gameStatusText').textContent = 
+                            'Waiting for players to be ready...';
+                    }
+                } catch (error) {
+                    console.error('Error updating spectator view:', error);
+                }
+            }
+
+            async updateCameraFrames() {
+                try {
+                    const response = await fetch('/api/spectator/camera-frames');
+                    const frames = await response.json();
+                    
+                    console.log('Camera frames received:', {
+                        player1Frame: frames.player1Frame ? 'has data' : 'null',
+                        player2Frame: frames.player2Frame ? 'has data' : 'null'
+                    });
+                    
+                    if (frames.player1Frame && frames.player1Frame.length > 0) {
+                        document.getElementById('player1Camera').src = 'data:image/jpeg;base64,' + frames.player1Frame;
+                    }
+                    if (frames.player2Frame && frames.player2Frame.length > 0) {
+                        document.getElementById('player2Camera').src = 'data:image/jpeg;base64,' + frames.player2Frame;
+                    }
+                } catch (error) {
+                    console.error('Error updating camera frames:', error);
+                }
+            }
+        }
+
+        // Initialize spectator
+        const spectator = new SpectatorClient();
+    </script>
+</body>
+</html>

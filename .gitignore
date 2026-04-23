@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# Cache
+.cache/
+*.cache
+
+# Temp files
+*.tmp
+temp/
+tmp/
