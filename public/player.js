@@ -3,6 +3,8 @@ class PlayerClient {
         this.playerId = playerId;
         this.playerNum = playerId.replace('player', '');
         this.isReady = false;
+        this.lastReadyToggle = 0;
+        this.isSettingReady = false;
         this.modalShown = false;
         
         // Performance Tracking
@@ -79,6 +81,8 @@ class PlayerClient {
 
     toggleReady() {
         this.isReady = !this.isReady;
+        this.lastReadyToggle = Date.now();
+        this.isSettingReady = true;
         this.sendReadyStatus(this.isReady);
         this.updateReadyButtonUI();
     }
@@ -104,10 +108,16 @@ class PlayerClient {
                 body: JSON.stringify({ ready })
             });
             if (!response.ok) throw new Error('Failed to send ready status');
+            // Successfully updated server, we can stop blocking sync soon
+            setTimeout(() => { this.isSettingReady = false; }, 500);
         } catch (error) {
             this.showStatus('Error: ' + error.message, 'error');
-            this.isReady = !this.isReady;
-            this.updateReadyButtonUI();
+            this.isSettingReady = false;
+            // On error, we might want to revert, but only if it wasn't toggled again
+            if (Date.now() - this.lastReadyToggle < 1000) {
+                this.isReady = !this.isReady;
+                this.updateReadyButtonUI();
+            }
         }
     }
 
@@ -116,7 +126,10 @@ class PlayerClient {
             const response = await fetch(`/api/player/${this.playerNum}/data`);
             const state = await response.json();
 
-            if (this.isReady !== state.ready && !state.gameActive && state.countdown === 0) {
+            // Only sync ready state from server if we haven't manually toggled it recently
+            // and we aren't currently waiting for a POST to finish
+            const timeSinceToggle = Date.now() - this.lastReadyToggle;
+            if (this.isReady !== state.ready && !state.gameActive && state.countdown === 0 && !this.isSettingReady && timeSinceToggle > 1000) {
                 this.isReady = state.ready;
                 this.updateReadyButtonUI();
             }

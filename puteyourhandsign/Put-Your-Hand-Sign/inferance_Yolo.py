@@ -37,6 +37,10 @@ session.headers.update({'ngrok-skip-browser-warning': 'true'})
 print(f"Loading YOLO model from: {MODEL_PATH}")
 model = YOLO(MODEL_PATH)
 
+# Rate limiting variables
+last_send_time = 0
+SEND_INTERVAL = 0.1 # 100ms (10 times per second)
+
 # Initialize camera with DSHOW for Windows settings support
 cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
 
@@ -99,9 +103,12 @@ while True:
             prediction = model.names[class_id]
             break
 
-    # Encode and send
-    frame_b64 = encode_frame_to_base64(input_frame)
-    send_pose_to_server(prediction, confidence, frame_b64, inference_ms)
+    # Encode and send (Rate Limited)
+    current_time = time.time()
+    if current_time - last_send_time >= SEND_INTERVAL:
+        frame_b64 = encode_frame_to_base64(input_frame)
+        send_pose_to_server(prediction, confidence, frame_b64, inference_ms)
+        last_send_time = current_time
 
     # Display
     info_text = f"{prediction} ({confidence:.2f})"

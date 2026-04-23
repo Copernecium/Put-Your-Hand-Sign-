@@ -110,16 +110,30 @@ function getRandomTask() {
   return availableTasks[randomIndex];
 }
 
+let countdownInterval = null;
+
 function startCountdown() {
   if (gameState.countdown > 0 || gameState.gameActive) return;
   if (gameResetTimeout) { clearTimeout(gameResetTimeout); gameResetTimeout = null; }
   gameState.countdown = 3;
   gameState.roundComplete = false;
   gameState.winner = null;
-  const countdownInterval = setInterval(() => {
+  
+  if (countdownInterval) clearInterval(countdownInterval);
+  
+  countdownInterval = setInterval(() => {
+    // If someone unreadies during countdown, stop the countdown
+    if (!gameState.player1.ready || !gameState.player2.ready) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+      gameState.countdown = 0;
+      return;
+    }
+    
     gameState.countdown--;
     if (gameState.countdown <= 0) {
       clearInterval(countdownInterval);
+      countdownInterval = null;
       startGame();
     }
   }, 1000);
