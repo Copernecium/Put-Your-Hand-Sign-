@@ -29,9 +29,8 @@ CAMERA_INDEX = args.camera
 THRESHOLD_VAL = 240
 CONF_THRESHOLD = 0.5
 
-# Create a persistent session to speed up requests
-session = requests.Session()
-session.headers.update({'ngrok-skip-browser-warning': 'true'})
+import threading
+import requests
 
 # Load YOLO model
 print(f"Loading YOLO model from: {MODEL_PATH}")
@@ -39,7 +38,7 @@ model = YOLO(MODEL_PATH)
 
 # Rate limiting variables
 last_send_time = 0
-SEND_INTERVAL = 0.1 # 100ms (10 times per second)
+SEND_INTERVAL = 0.033 # ~30 times per second
 
 # Initialize camera with DSHOW for Windows settings support
 cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
@@ -52,31 +51,31 @@ if not args.no_settings:
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-print("🚀 AI Shadow Predictor Started!")
-print(f"📡 Server: {SERVER_URL}")
-print(f"👤 Player: {PLAYER_ID}")
-print("⌨️ Press 'q' to close program")
-
 def encode_frame_to_base64(frame):
     """Encode frame to base64 string with heavy optimization for speed"""
     small_frame = cv2.resize(frame, (240, 180))
-    _, buffer = cv2.imencode('.jpg', small_frame, [cv2.IMWRITE_JPEG_QUALITY, 35])
+    _, buffer = cv2.imencode('.jpg', small_frame, [cv2.IMWRITE_JPEG_QUALITY, 25])
     return base64.b64encode(buffer).decode('utf-8')
 
-def send_pose_to_server(prediction, confidence, frame_base64, inference_time):
-    """Send prediction, camera frame, and inference time to server"""
+def send_data_async(url, data):
+    """Worker function to send data in background thread"""
     try:
-        endpoint = f"{SERVER_URL}/api/{PLAYER_ID}/pose"
-        payload = {
-            'prediction': prediction,
-            'confidence': confidence,
-            'cameraFrame': frame_base64,
-            'inferenceTime': inference_time
-        }
-        session.post(endpoint, json=payload, timeout=0.1)
-        return True
+        requests.post(url, json=data, timeout=1.0)
     except:
-        return False
+        pass
+
+def send_pose_to_server(prediction, confidence, frame_base64, inference_time):
+    """Send data using a background thread to avoid blocking the main loop"""
+    endpoint = f"{SERVER_URL}/api/{PLAYER_ID}/pose"
+    payload = {
+        'prediction': prediction,
+        'confidence': confidence,
+        'cameraFrame': frame_base64,
+        'inferenceTime': inference_time
+    }
+    # Fire and forget in a background thread
+    threading.Thread(target=send_data_async, args=(endpoint, payload), daemon=True).start()
+    return True
 
 while True:
     ret, frame = cap.read()

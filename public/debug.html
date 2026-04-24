@@ -250,7 +250,7 @@
                 el.style.color = 'white';
             }
 
-            startMonitoring() { setInterval(() => this.updateGameState(), 100); }
+            startMonitoring() { setInterval(() => this.updateGameState(), 500); }
 
             addLog(message) {
                 const timestamp = new Date().toLocaleTimeString();

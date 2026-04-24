@@ -168,6 +168,9 @@ app.post('/api/player1/ready', (req, res) => {
 app.post('/api/player1/pose', (req, res) => {
   msgCounts.player1++;
   const { prediction, confidence, cameraFrame, inferenceTime } = req.body;
+  if (msgCounts.player1 % 10 === 0) {
+    console.log(`[Player 1] Pose received. Prediction: ${prediction}, Frame: ${cameraFrame ? 'YES (' + cameraFrame.length + ' chars)' : 'NO'}`);
+  }
   gameState.player1.prediction = prediction;
   gameState.player1.poseConfidence = confidence;
   gameState.player1.inferenceTime = inferenceTime || 0;
@@ -266,12 +269,39 @@ app.post('/api/debug/player/ready/:playerNum', (req, res) => {
 });
 
 app.get('/api/spectator/state', (req, res) => {
-  res.json({
-    player1: { score: gameState.player1.score, prediction: gameState.player1.prediction, poseConfidence: gameState.player1.poseConfidence, ready: gameState.player1.ready, inferenceTime: gameState.player1.inferenceTime },
-    player2: { score: gameState.player2.score, prediction: gameState.player2.prediction, poseConfidence: gameState.player2.poseConfidence, ready: gameState.player2.ready, inferenceTime: gameState.player2.inferenceTime },
-    gameActive: gameState.gameActive, gameMode: gameState.gameMode, countdown: gameState.countdown, currentTask: gameState.currentTask,
-    timer: gameState.timer, timerRunning: gameState.timerRunning, roundWinner: gameState.roundWinner, roundComplete: gameState.roundComplete, winner: gameState.winner
-  });
+  const includeFrames = req.query.frames === 'true';
+  const data = {
+    player1: { 
+      score: gameState.player1.score, 
+      prediction: gameState.player1.prediction, 
+      poseConfidence: gameState.player1.poseConfidence, 
+      ready: gameState.player1.ready, 
+      inferenceTime: gameState.player1.inferenceTime 
+    },
+    player2: { 
+      score: gameState.player2.score, 
+      prediction: gameState.player2.prediction, 
+      poseConfidence: gameState.player2.poseConfidence, 
+      ready: gameState.player2.ready, 
+      inferenceTime: gameState.player2.inferenceTime 
+    },
+    gameActive: gameState.gameActive, 
+    gameMode: gameState.gameMode, 
+    countdown: gameState.countdown, 
+    currentTask: gameState.currentTask,
+    timer: gameState.timer, 
+    timerRunning: gameState.timerRunning, 
+    roundWinner: gameState.roundWinner, 
+    roundComplete: gameState.roundComplete, 
+    winner: gameState.winner
+  };
+
+  if (includeFrames) {
+    data.player1.cameraFrame = gameState.player1.cameraFrame;
+    data.player2.cameraFrame = gameState.player2.cameraFrame;
+  }
+
+  res.json(data);
 });
 
 app.get('/api/spectator/camera-frames', (req, res) => {

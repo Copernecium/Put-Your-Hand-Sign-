@@ -35,9 +35,22 @@ class PlayerClient {
         this.modalFinalScore = document.getElementById('modalFinalScore');
         
         this.displayImage = new Image();
+        this.displayImage.onload = () => {
+            if (!this.canvasElement) return;
+            const ctx = this.canvasElement.getContext('2d');
+            this.canvasElement.width = this.displayImage.width;
+            this.canvasElement.height = this.displayImage.height;
+            ctx.drawImage(this.displayImage, 0, 0);
+            if (this.videoElement) this.videoElement.style.display = 'none';
+            this.canvasElement.style.display = 'block';
+        };
+        
+        this.activeFrameRequests = 0;
+        this.lastFrameTime = 0;
         
         this.setupEventListeners();
         this.startStatePolling();
+        this.startFramePolling();
         this.startPerformanceTracker();
     }
 
@@ -121,6 +134,14 @@ class PlayerClient {
         }
     }
 
+    startStatePolling() {
+        setInterval(() => this.updateGameState(), 500); // Game state every 500ms
+    }
+
+    startFramePolling() {
+        setInterval(() => this.updateCameraFrame(), 33); // Frames every 33ms (~30 FPS)
+    }
+
     async updateGameState() {
         try {
             const response = await fetch(`/api/player/${this.playerNum}/data`);
@@ -178,23 +199,31 @@ class PlayerClient {
                     document.getElementById('currentTask').textContent = 'Waiting for game start...';
                 }
             }
+        } catch (error) {
+            console.error('Error updating game state:', error);
+        }
+    }
 
-            if (state.cameraFrame) {
+    async updateCameraFrame() {
+        if (this.activeFrameRequests >= 3) return; // Limit concurrent requests
+        
+        const requestTime = Date.now();
+        try {
+            this.activeFrameRequests++;
+            const response = await fetch(`/api/player/${this.playerNum}/data`);
+            const state = await response.json();
+            
+            // Only update if this is the newest frame we've received
+            if (state.cameraFrame && requestTime > this.lastFrameTime) {
+                this.lastFrameTime = requestTime;
                 this.fpsCount++;
                 const prefix = state.cameraFrame.startsWith('data:image') ? '' : 'data:image/jpeg;base64,';
-                this.displayImage.onload = () => {
-                    const ctx = this.canvasElement.getContext('2d');
-                    this.canvasElement.width = this.displayImage.width;
-                    this.canvasElement.height = this.displayImage.height;
-                    ctx.drawImage(this.displayImage, 0, 0);
-                    if (this.videoElement) this.videoElement.style.display = 'none';
-                    this.canvasElement.style.display = 'block';
-                };
                 this.displayImage.src = prefix + state.cameraFrame;
                 document.getElementById('cameraStatus').textContent = 'AI Feed: Live';
             }
         } catch (error) {
-            console.error('Error updating game state:', error);
+        } finally {
+            this.activeFrameRequests--;
         }
     }
 
@@ -215,10 +244,6 @@ class PlayerClient {
             this.modalMessage.textContent = "Nice try! Better luck in the next round.";
         }
         this.resultModal.style.display = 'flex';
-    }
-
-    startStatePolling() {
-        setInterval(() => this.updateGameState(), 50);
     }
 
     showStatus(message, type) {

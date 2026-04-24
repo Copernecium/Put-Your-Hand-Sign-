@@ -1,5 +1,5 @@
 @echo off
-set /p SERVER_URL="Enter ngrok URL (e.g., https://xyz.ngrok-free.app): "
+set /p SERVER_URL="Enter Tunnel URL (e.g., https://xyz.trycloudflare.com or https://xyz.ngrok-free.app): "
 set /p CAMERA_ID="Enter Camera Index (0 for default, 1 for external): "
 
 :: Check if .venv exists locally
